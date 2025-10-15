@@ -5,6 +5,8 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { Toaster } from "@/components/ui/toaster"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ChipiProvider } from "@chipi-pay/chipi-sdk"
 import "./globals.css"
 
 const spaceGrotesk = Space_Grotesk({
@@ -12,6 +14,8 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-geist-sans",
   display: "swap",
 })
+
+const queryClient = new QueryClient()
 
 export const metadata: Metadata = {
   title: "InviPay - Instant Payments",
@@ -27,9 +31,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans ${spaceGrotesk.variable} ${GeistMono.variable}`}>
-        <Suspense fallback={null}>{children}</Suspense>
-        <Toaster />
-        <Analytics />
+        <QueryClientProvider client={queryClient}>
+          <ChipiProvider
+            publicKey={process.env.NEXT_PUBLIC_CHIPI_PUBLIC_KEY}
+            merchantWallet={process.env.NEXT_PUBLIC_CHIPI_MERCHANT_WALLET}
+          >
+            <Suspense fallback={null}>{children}</Suspense>
+            <Toaster />
+            <Analytics />
+          </ChipiProvider>
+        </QueryClientProvider>
       </body>
     </html>
   )
