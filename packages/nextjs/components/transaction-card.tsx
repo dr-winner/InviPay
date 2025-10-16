@@ -5,6 +5,7 @@ import { ArrowUpRight, ArrowDownLeft, Clock } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { Transaction } from "@/lib/types"
 import { CURRENT_USER_ID, mockUsers } from "@/lib/mock-data"
+import { useAppStore } from "@/lib/store"
 
 interface TransactionCardProps {
   transaction: Transaction
@@ -14,7 +15,27 @@ interface TransactionCardProps {
 export function TransactionCard({ transaction, index }: TransactionCardProps) {
   const isSent = transaction.senderId === CURRENT_USER_ID
   const otherUserId = isSent ? transaction.receiverId : transaction.senderId
-  const otherUser = mockUsers.find((u) => u.id === otherUserId)
+  
+  // Get users from store and combine with mock users
+  const storeUsers = useAppStore((state) => state.users)
+  const allUsers = [...mockUsers, ...storeUsers]
+  const otherUser = allUsers.find((u) => u.id === otherUserId)
+  
+  // Format name from email if user has email
+  const formatNameFromEmail = (email: string) => {
+    const emailName = email.split('@')[0]
+      .replace(/[^a-zA-Z]/g, ' ')  // Remove all non-letters (numbers, special chars)
+      .split(' ')
+      .filter(word => word.length > 0)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+    
+    return emailName || 'User'
+  }
+  
+  // Get display name - use formatted email name if available, otherwise use displayName
+  const displayName = otherUser?.email ? formatNameFromEmail(otherUser.email) : (otherUser?.displayName || 'User')
+  
   const isPending = transaction.status === "pending"
 
   const formatDate = (date: Date) => {
@@ -57,8 +78,9 @@ export function TransactionCard({ transaction, index }: TransactionCardProps) {
           {/* Avatar */}
           <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
             <Avatar className="h-12 w-12">
-              <AvatarImage src={otherUser?.avatarUrl || "/placeholder.svg"} alt={otherUser?.displayName} />
-              <AvatarFallback>{otherUser?.displayName?.[0] || "?"}</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold">
+                {displayName?.split(' ')[0]?.charAt(0).toUpperCase() || "?"}
+              </AvatarFallback>
             </Avatar>
           </motion.div>
 
@@ -66,7 +88,7 @@ export function TransactionCard({ transaction, index }: TransactionCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="font-semibold text-foreground truncate">
-                {isSent ? `Sent to ${otherUser?.displayName}` : `Received from ${otherUser?.displayName}`}
+                {isSent ? `Sent to ${displayName}` : `Received from ${displayName}`}
               </p>
               {isPending && (
                 <motion.div

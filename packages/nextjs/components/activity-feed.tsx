@@ -6,19 +6,24 @@ import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TransactionCard } from "@/components/transaction-card"
 import { getTransactionsForUser, CURRENT_USER_ID } from "@/lib/mock-data"
+import { useAppStore } from "@/lib/store"
 import type { Transaction } from "@/lib/types"
 
 export function ActivityFeed() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
-
-  useEffect(() => {
-    loadTransactions()
-  }, [])
+  
+  // Get transactions from store
+  const storeTransactions = useAppStore((state) => state.transactions)
+  const totalSent = useAppStore((state) => state.totalSent)
+  const totalReceived = useAppStore((state) => state.totalReceived)
+  
+  // Combine store transactions with mock transactions
+  const mockTransactions = getTransactionsForUser(CURRENT_USER_ID)
+  const allTransactions = [...storeTransactions, ...mockTransactions]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   const loadTransactions = () => {
-    const txs = getTransactionsForUser(CURRENT_USER_ID)
-    setTransactions(txs)
+    // Transactions are now managed by the store
   }
 
   const handleRefresh = async () => {
@@ -47,11 +52,34 @@ export function ActivityFeed() {
         </Button>
       </div>
 
+      {/* Stats Summary - Moved to top */}
+      {allTransactions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 gap-4"
+        >
+          <div className="p-4 rounded-lg bg-card border border-border">
+            <p className="text-xs text-muted-foreground mb-1">Total Sent</p>
+            <p className="text-xl font-bold text-destructive">
+              ${totalSent.toFixed(2)}
+            </p>
+          </div>
+          <div className="p-4 rounded-lg bg-card border border-border">
+            <p className="text-xs text-muted-foreground mb-1">Total Received</p>
+            <p className="text-xl font-bold text-primary">
+              ${totalReceived.toFixed(2)}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Transaction List */}
       <div className="space-y-3">
         <AnimatePresence mode="popLayout">
-          {transactions.length > 0 ? (
-            transactions.map((transaction, index) => (
+          {allTransactions.length > 0 ? (
+            allTransactions.map((transaction, index) => (
               <TransactionCard key={transaction.id} transaction={transaction} index={index} />
             ))
           ) : (
@@ -67,37 +95,6 @@ export function ActivityFeed() {
           )}
         </AnimatePresence>
       </div>
-
-      {/* Stats Summary */}
-      {transactions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 gap-4 pt-4"
-        >
-          <div className="p-4 rounded-lg bg-card border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Total Sent</p>
-            <p className="text-xl font-bold text-destructive">
-              $
-              {transactions
-                .filter((t) => t.senderId === CURRENT_USER_ID && t.status === "success")
-                .reduce((sum, t) => sum + t.amount, 0)
-                .toFixed(2)}
-            </p>
-          </div>
-          <div className="p-4 rounded-lg bg-card border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Total Received</p>
-            <p className="text-xl font-bold text-primary">
-              $
-              {transactions
-                .filter((t) => t.receiverId === CURRENT_USER_ID && t.status === "success")
-                .reduce((sum, t) => sum + t.amount, 0)
-                .toFixed(2)}
-            </p>
-          </div>
-        </motion.div>
-      )}
     </div>
   )
 }
