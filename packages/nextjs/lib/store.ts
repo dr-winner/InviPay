@@ -106,7 +106,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       username,
       loginTime: new Date().toISOString()
     }
+    
+    // Store current session
     localStorage.setItem('inviPay_user', JSON.stringify(userData))
+    
+    // Register user in persistent storage if not already registered
+    const registeredUsers = localStorage.getItem('inviPay_registered_users')
+    if (registeredUsers) {
+      const users = JSON.parse(registeredUsers)
+      const userExists = users.some((user: any) => user.email === email)
+      if (!userExists) {
+        users.push({ email, username, createdAt: new Date().toISOString() })
+        localStorage.setItem('inviPay_registered_users', JSON.stringify(users))
+      }
+    } else {
+      // First user registration
+      localStorage.setItem('inviPay_registered_users', JSON.stringify([{ 
+        email, 
+        username, 
+        createdAt: new Date().toISOString() 
+      }]))
+    }
+    
     set({ isAuthenticated: true, userEmail: email, currentUser: { email, username } })
   },
   logout: () => {

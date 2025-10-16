@@ -52,6 +52,16 @@ function getWeb3AvatarStyle(username: string) {
   return colors[Math.abs(hash) % colors.length]
 }
 
+// Generate a random wallet key
+const generateRandomWalletKey = () => {
+  const chars = '0123456789abcdef'
+  let result = '0x'
+  for (let i = 0; i < 64; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
 export function ProfileSection() {
   const storeUser = useAppStore((state) => state.currentUser)
   const mockUser = getCurrentUser()
@@ -93,8 +103,22 @@ export function ProfileSection() {
   const socialConnections = useAppStore((state) => state.socialConnections)
   const updateSocialConnection = useAppStore((state) => state.updateSocialConnection)
 
+  // Get actual account creation date from localStorage
+  const getAccountCreationDate = () => {
+    if (typeof window !== 'undefined') {
+      const userSession = localStorage.getItem('inviPay_user')
+      if (userSession) {
+        const userData = JSON.parse(userSession)
+        return userData.loginTime ? new Date(userData.loginTime) : new Date()
+      }
+    }
+    return new Date()
+  }
+
+  const accountCreationDate = getAccountCreationDate()
+
   const handleCopyKey = () => {
-    navigator.clipboard.writeText("mock-invisible-key-" + currentUser.invisibleKeyId)
+    navigator.clipboard.writeText(generateRandomWalletKey())
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -358,7 +382,7 @@ export function ProfileSection() {
         <div className="p-4 rounded-lg bg-card border border-border space-y-3">
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Member Since</span>
-            <span className="text-sm font-medium">{currentUser.createdAt.toLocaleDateString()}</span>
+            <span className="text-sm font-medium">{accountCreationDate.toLocaleDateString()}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Account Type</span>
@@ -434,7 +458,7 @@ export function ProfileSection() {
 
                 <div className="relative">
                   <div className="p-4 rounded-lg bg-secondary border border-border font-mono text-sm break-all">
-                    {currentUser.invisibleKeyId}-mock-key-0x1234567890abcdef
+                    {generateRandomWalletKey()}
                   </div>
                   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <Button onClick={handleCopyKey} size="sm" variant="ghost" className="absolute top-2 right-2">

@@ -52,6 +52,29 @@ export function ActivityFeed() {
         </Button>
       </div>
 
+      {/* Stats Summary - Moved to top */}
+      {allTransactions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 gap-4"
+        >
+          <div className="p-4 rounded-lg bg-card border border-border">
+            <p className="text-xs text-muted-foreground mb-1">Total Sent</p>
+            <p className="text-xl font-bold text-destructive">
+              ${totalSent.toFixed(2)}
+            </p>
+          </div>
+          <div className="p-4 rounded-lg bg-card border border-border">
+            <p className="text-xs text-muted-foreground mb-1">Total Received</p>
+            <p className="text-xl font-bold text-primary">
+              ${totalReceived.toFixed(2)}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Transaction List */}
       <div className="space-y-3">
         <AnimatePresence mode="popLayout">
@@ -72,29 +95,6 @@ export function ActivityFeed() {
           )}
         </AnimatePresence>
       </div>
-
-      {/* Stats Summary */}
-      {allTransactions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 gap-4 pt-4"
-        >
-          <div className="p-4 rounded-lg bg-card border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Total Sent</p>
-            <p className="text-xl font-bold text-destructive">
-              ${totalSent.toFixed(2)}
-            </p>
-          </div>
-          <div className="p-4 rounded-lg bg-card border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Total Received</p>
-            <p className="text-xl font-bold text-primary">
-              ${totalReceived.toFixed(2)}
-            </p>
-          </div>
-        </motion.div>
-      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowRight, Mail, Shield, Zap, Users, CheckCircle, Star } from "lucide-react"
+import { ArrowRight, Mail, Shield, Zap, Users, CheckCircle, Star, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,8 +14,39 @@ export default function LandingPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
+  const [userExists, setUserExists] = useState<boolean | null>(null)
+  const [showUserCheck, setShowUserCheck] = useState(false)
+  const [showAccountNotFound, setShowAccountNotFound] = useState(false)
   const router = useRouter()
   const login = useAppStore((state) => state.login)
+
+  // Check if user exists in localStorage
+  const checkUserExists = (email: string): boolean => {
+    if (typeof window === 'undefined') return false
+    
+    // Check current session first
+    const userSession = localStorage.getItem('inviPay_user')
+    if (userSession) {
+      const userData = JSON.parse(userSession)
+      if (userData.email === email) return true
+    }
+    
+    // Check all registered users
+    const registeredUsers = localStorage.getItem('inviPay_registered_users')
+    if (registeredUsers) {
+      const users = JSON.parse(registeredUsers)
+      return users.some((user: any) => user.email === email)
+    }
+    
+    return false
+  }
+
+  const resetForm = () => {
+    setUserExists(null)
+    setShowUserCheck(false)
+    setShowAccountNotFound(false)
+    setIsLoading(false)
+  }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,11 +54,53 @@ export default function LandingPage() {
 
     setIsLoading(true)
     
-    // Simulate account abstraction flow
+    // Check if user exists
+    const exists = checkUserExists(email)
+    setUserExists(exists)
+    setShowUserCheck(true)
+    
+    // Simulate API call delay
     setTimeout(() => {
-      login(email)
       setIsLoading(false)
-      router.push('/dashboard')
+      
+      // If user exists and they're trying to sign in, proceed
+      if (exists && !showSignup) {
+        login(email)
+        setUserExists(true)
+        setShowUserCheck(false)
+        // Show success message briefly before redirecting
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 2000)
+      }
+      // If user doesn't exist and they're trying to sign up, proceed
+      else if (!exists && showSignup) {
+        login(email)
+        setUserExists(false)
+        setShowUserCheck(false)
+        // Show success message briefly before redirecting
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 2000)
+      }
+      // If user doesn't exist but they're trying to sign in, show account not found prompt
+      else if (!exists && !showSignup) {
+        setShowUserCheck(false)
+        setShowAccountNotFound(true)
+      }
+      // If user exists but they're trying to sign up, switch to signin and proceed
+      else if (exists && showSignup) {
+        setShowSignup(false)
+        setShowUserCheck(false)
+        setUserExists(true)
+        // Show success message briefly before redirecting
+        setTimeout(() => {
+          login(email)
+          setTimeout(() => {
+            router.push('/dashboard')
+          }, 2000)
+        }, 500)
+      }
     }, 1500)
   }
 
@@ -177,13 +250,136 @@ export default function LandingPage() {
                 {showSignup ? "Already have an account?" : "New to InviPay?"}{" "}
                 <button
                   type="button"
-                  onClick={() => setShowSignup(!showSignup)}
+                  onClick={() => {
+                    setShowSignup(!showSignup)
+                    resetForm()
+                  }}
                   className="text-primary hover:underline font-medium"
                 >
                   {showSignup ? "Sign in" : "Create account"}
                 </button>
               </p>
             </motion.form>
+
+            {/* User Check Feedback */}
+            <AnimatePresence>
+              {showUserCheck && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="max-w-md mx-auto"
+                >
+                  <div className="p-4 rounded-lg bg-card border border-border">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {showSignup ? "Creating your account..." : "Signing you in..."}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* User Exists/Doesn't Exist Feedback */}
+            <AnimatePresence>
+              {userExists !== null && !showUserCheck && !showAccountNotFound && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="max-w-md mx-auto"
+                >
+                  <div className={`p-4 rounded-lg border ${
+                    userExists 
+                      ? "bg-primary/10 border-primary/20 text-primary" 
+                      : "bg-accent/10 border-accent/20 text-accent"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        userExists ? "bg-primary/20" : "bg-accent/20"
+                      }`}>
+                        <CheckCircle className="w-3 h-3" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {userExists 
+                            ? "Account found! Redirecting to dashboard..." 
+                            : "New account created! Redirecting to dashboard..."
+                          }
+                        </p>
+                        <p className="text-xs opacity-80 mt-1">
+                          {userExists 
+                            ? "Welcome back to InviPay" 
+                            : "Your invisible wallet is being set up"
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Account Not Found Prompt */}
+            <AnimatePresence>
+              {showAccountNotFound && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="max-w-md mx-auto"
+                >
+                  <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <AlertTriangle className="w-3 h-3 text-destructive" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-destructive">
+                          Account not found
+                        </p>
+                        <p className="text-xs text-destructive/80 mt-1">
+                          No account found with this email address. Please create an account to continue using InviPay.
+                        </p>
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setShowSignup(true)
+                              setShowAccountNotFound(false)
+                              setUserExists(null)
+                              setShowUserCheck(false)
+                            }}
+                            className="text-xs"
+                          >
+                            Create Account
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setShowAccountNotFound(false)
+                              setUserExists(null)
+                              setShowUserCheck(false)
+                              setEmail("")
+                            }}
+                            className="text-xs"
+                          >
+                            Try Different Email
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       </section>

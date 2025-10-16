@@ -363,7 +363,7 @@ export function SendSheet({ isOpen, onClose, onSendComplete }: SendSheetProps) {
                                     Creating User...
                                   </>
                                 ) : (
-                                  'Create & Send Money'
+                                  'Add User'
                                 )}
                               </Button>
                               
